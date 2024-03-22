@@ -5,7 +5,7 @@
 # pylint: disable=line-too-long
 
 '''
-    TODO: Allow user to specify Audio type
+    DONE: Allow user to specify Audio type
     TODO: Allow user to specify verbose output, default to quiet
     TODO: Allow user to specify output directory
     TODO: Allow user to specify naming convention to cope with Plex
@@ -242,6 +242,7 @@ def get_decryption_key(pssh: str, lic_url: str) -> str | None:
 
 def download_streams(mpd: str, show_title: str, episode_title: str) -> str:
     ''' Download streams '''
+
     try:
         print_with_asterisk("[*] Downloading streams...")
 
@@ -255,7 +256,13 @@ def download_streams(mpd: str, show_title: str, episode_title: str) -> str:
 
         # It's at this point that we want to allow the selection of normal audio (wa) or
         # include the audio description
-        # TODO: Allow user to select audio quality
+        # DONE: Allow user to select audio quality
+
+        video_audio = "bv,wa"
+
+        if arguments.audio_description:
+            video_audio = "bv,ba"
+
         args = [
             yt_dlp,
             "--allow-unplayable-formats",
@@ -263,7 +270,7 @@ def download_streams(mpd: str, show_title: str, episode_title: str) -> str:
             "--no-warnings",
             "--progress",
             "-f",
-            "bv,ba",
+            video_audio,
             mpd,
             "-o",
             f"{TMP_DIR}/encrypted_{output_title}.%(ext)s",
@@ -434,13 +441,16 @@ def create_argument_parser():
         help="Flag to download subtitles",
         action="store_true",
     )
+
+    parser.add_argument("--audio-description", "-ad", help="Download Audio Description audio track", action="store_true")
+
     parser.add_argument(
         "--url", "-u", help="The URL of the episode to download", required=True
     )
 
-    parser.add_argument("--verbose", "--v", help="Verbose output", action="store_true")
+    parser.add_argument("--verbose", "--v", help="Verbose output (TODO)", action="store_true")
     parser.add_argument("--dry-run", action="store_true",
-                        help="Don't do anything, just print out proposed actions")
+                        help="Don't do anything, just print out proposed actions (TODO)")
 
     args = parser.parse_args()
 
@@ -449,18 +459,17 @@ def create_argument_parser():
         sys.exit(1)
     return args
 
-
 def main() -> None:
     '''
         Programme to download content from Channel 5 in the UK (my5.tv)
         Cloned from the original https://github.com/Diazole/my5-dl
     '''
 
+    url = arguments.url
+    dl_video = arguments.download
+    dl_subtitles = arguments.subtitles
+
     check_required_config_values()
-    parser = create_argument_parser()
-    url = parser.url
-    dl_video = parser.download
-    dl_subtitles = parser.subtitles
 
     # Generate the episode URL
     episode_url = generate_episode_url(url)
@@ -514,4 +523,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+
+    # We need to check the arguments supplied before anything else.
+    arguments = create_argument_parser()
+
     main()
