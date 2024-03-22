@@ -1,3 +1,10 @@
+'''
+Utility Functions
+
+TODO: Fix comment sections
+
+'''
+
 import os
 import re
 import sys
@@ -6,6 +13,8 @@ from config import TMP_DIR
 
 
 def b64_url_to_std(val: str) -> str:
+    ''' Utility Functions '''
+
     replacements = [
         (r"\u002d", "+"),
         (r"\x5f", "/"),
@@ -16,6 +25,7 @@ def b64_url_to_std(val: str) -> str:
 
 
 def b64_std_to_url(val: str) -> str:
+    ''' Utility Functions '''
     replacements = [
         (r"\+", "-"),
         (r"\/", "_"),
@@ -27,6 +37,7 @@ def b64_std_to_url(val: str) -> str:
 
 # This is good enough
 def safe_name(val: str) -> str:
+    ''' Utility Functions '''
     replacements = [
         (r"<", ""),
         (r">", ""),
@@ -45,12 +56,14 @@ def safe_name(val: str) -> str:
 
 
 def print_with_asterisk(*vals: list[str]) -> None:
+    ''' Utility Functions '''
     print("*" * os.get_terminal_size().columns)
     for val in vals:
         print(val)
 
 
 def delete_temp_files() -> None:
+    ''' Utility Functions '''
     if TMP_DIR != "./tmp":
         print("Temp file is not the default")
         sys.exit()

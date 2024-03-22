@@ -1,32 +1,42 @@
 # Channel 5 (My5) Downloader
+
 An AIO python script to download Channel 5 (My5) content.
 
 ## Requirements
+
 * Python 3.6.*
 * pip
-* ffmpeg (https://github.com/FFmpeg/FFmpeg)
-* mp4decrypt (https://github.com/axiomatic-systems/Bento4)
-* yt-dlp (https://github.com/yt-dlp/yt-dlp)
-* WVD file (https://github.com/rlaphoenix/pywidevine)
+* ffmpeg (<https://github.com/FFmpeg/FFmpeg>)
+* mp4decrypt (<https://github.com/axiomatic-systems/Bento4>)
+* yt-dlp (<https://github.com/yt-dlp/yt-dlp>)
+* WVD file (<https://github.com/rlaphoenix/pywidevine>)
 
-##  Install
-```
+## Install
+
+```bash
 pip install -r requirements.txt
 ```
 
 ## Usage
-```
+
+```bash
+# Windows
 py .\my5-dl.py --download --subtitles --url "https://www.channel5.com/show/secrets-of-our-universe-with-tim-peake/season-1/the-planets"
+
+# Linux
+./my5-dl.py --download --subtitles --url "https://www.channel5.com/show/secrets-of-our-universe-with-tim-peake/season-1/the-planets"
 ```
 
 ## Arguments
-```
+
+```bash
 -d, --download   Download content.
 -s, --subtitles  Download subtitles.
 -u, --url        URL of the episode to download.
 ```
 
 ## Config
+
 Config is located in `config.py`
 
 `HMAC_SECRET` - HMAC secret used to generate the authentication key for the content URL  
@@ -38,6 +48,7 @@ Config is located in `config.py`
 `WVD_PATH` - Path to your WVD file
 
 ## Retrieving Keys
+
 The `HMAC_SECRET` and `AES_KEY` keys can be retrieved by opening `./keys/retrieve-keys.html` in your browser.
 
 ## Disclaimer

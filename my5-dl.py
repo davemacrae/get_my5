@@ -1,3 +1,16 @@
+#!/usr/bin/env python
+
+# pylint: disable=consider-using-f-string
+# pylint: disable=raise-missing-from
+# pylint: disable=line-too-long
+
+'''
+    TODO: Allow user to specify Audio type
+    TODO: Allow user to specify verbose output, default to quiet
+    TODO: Allow user to specify output directory
+    TODO: Allow user to specify naming convention to cope with Plex
+'''
+
 import argparse
 import base64
 import json
@@ -39,12 +52,13 @@ from config import (
 
 
 def generate_episode_url(url: str) -> str | None:
+    ''' Generate the episode URL '''
     try:
         print("[*] Generating the episode URL...")
         path_segments = urlparse(url).path.strip("/").split("/")
 
         if path_segments[0] != "show":
-            return
+            return None
 
         if len(path_segments) == 2:
             show = path_segments[1]
@@ -60,7 +74,8 @@ def generate_episode_url(url: str) -> str | None:
         raise
 
 
-def get_content_info(episode_url: str) -> str:
+def get_content_info(episode_url: str) -> str | None:
+    ''' Get the encrypted content info '''
     try:
         print("[*] Getting the encrypted content info...")
         r = requests.get(episode_url, headers=DEFAULT_JSON_HEADERS, timeout=10)
@@ -68,13 +83,13 @@ def get_content_info(episode_url: str) -> str:
             print(
                 f"[!] Received status code '{r.status_code}' when attempting to get the content ID"
             )
-            return
+            return None
 
         resp = json.loads(r.content)
 
-        if resp["vod_available"] == False:
+        if resp["vod_available"] is False:
             print("[!] Episode is not available")
-            return
+            return None
 
         return (
             resp["id"],
@@ -89,6 +104,8 @@ def get_content_info(episode_url: str) -> str:
 
 
 def generate_content_url(content_id: str) -> str:
+    ''' Generate the content URL '''
+
     try:
         print("[*] Generating the content URL...")
         now = int(time.time() * 1000)
@@ -103,6 +120,7 @@ def generate_content_url(content_id: str) -> str:
 
 
 def decrypt_content(content: dict) -> str:
+    ''' Decrypt the content response '''
     try:
         print("[*] Decrypting the content response...")
         key_bytes = base64.b64decode(AES_KEY)
@@ -116,7 +134,9 @@ def decrypt_content(content: dict) -> str:
         raise
 
 
-def get_content_response(content_url: str) -> dict:
+def get_content_response(content_url: str) -> dict | None:
+    ''' Get content response '''
+
     try:
         print("[*] Getting content response...")
         r = requests.get(content_url, headers=DEFAULT_JSON_HEADERS, timeout=10)
@@ -124,7 +144,7 @@ def get_content_response(content_url: str) -> dict:
             print(
                 f"[!] Received status code '{r.status_code}' when attempting to get the content response"
             )
-            return
+            return None
         resp = json.loads(r.content)
         return json.loads(decrypt_content(resp))
     except Exception as ex:
@@ -133,6 +153,7 @@ def get_content_response(content_url: str) -> dict:
 
 
 def get_first_rendition(decrypted_content: str) -> None:
+    ''' Get First Rendition: Not sure what this does '''
     for asset in decrypted_content["assets"]:
         if asset["drm"] == "widevine":
             print_with_asterisk("[LICENSE URL]", asset["keyserver"])
@@ -159,6 +180,7 @@ def get_first_rendition(decrypted_content: str) -> None:
 
 
 def print_decrypted_content(decrypted_content: str):
+    ''' Print decrypted content '''
     for asset in decrypted_content["assets"]:
         if asset["drm"] == "widevine":
             print_with_asterisk("[LICENSE URL]", asset["keyserver"])
@@ -168,7 +190,8 @@ def print_decrypted_content(decrypted_content: str):
                 print_with_asterisk("[MPD URL]", rendition["url"])
 
 
-def get_pssh_from_mpd(mpd: str):
+def get_pssh_from_mpd(mpd: str) -> str | None:
+    ''' Extract PSSH from MPD '''
     try:
         print_with_asterisk("[*] Extracting PSSH from MPD...")
         r = requests.get(mpd, headers=DEFAULT_JSON_HEADERS, timeout=10)
@@ -176,7 +199,7 @@ def get_pssh_from_mpd(mpd: str):
             print(
                 f"[!] Received status code '{r.status_code}' when attempting to get the MPD"
             )
-            return
+            return None
 
         return re.findall(r"<cenc:pssh>(.*?)</cenc:pssh>", r.text)[1]
     except Exception as ex:
@@ -185,6 +208,7 @@ def get_pssh_from_mpd(mpd: str):
 
 
 def get_decryption_key(pssh: str, lic_url: str) -> str | None:
+    ''' Get decryption keys '''
     cdm = None
     session_id = None
     try:
@@ -199,7 +223,7 @@ def get_decryption_key(pssh: str, lic_url: str) -> str | None:
             print(
                 f"[!] Received status code '{r.status_code}' when attempting to get the license challenge"
             )
-            return
+            return None
         cdm.parse_license(session_id, r.content)
 
         decryption_key = None
@@ -217,6 +241,7 @@ def get_decryption_key(pssh: str, lic_url: str) -> str | None:
 
 
 def download_streams(mpd: str, show_title: str, episode_title: str) -> str:
+    ''' Download streams '''
     try:
         print_with_asterisk("[*] Downloading streams...")
 
@@ -228,6 +253,9 @@ def download_streams(mpd: str, show_title: str, episode_title: str) -> str:
 
         os.makedirs(TMP_DIR, exist_ok=True)
 
+        # It's at this point that we want to allow the selection of normal audio (wa) or
+        # include the audio description
+        # TODO: Allow user to select audio quality
         args = [
             yt_dlp,
             "--allow-unplayable-formats",
@@ -248,6 +276,7 @@ def download_streams(mpd: str, show_title: str, episode_title: str) -> str:
 
 
 def decrypt_streams(decryption_key: str, output_title: str) -> list:
+    ''' Decrypt streams '''
     try:
         print("[*] Decrypting streams...")
 
@@ -289,8 +318,11 @@ def merge_streams(
     subtitles_url: str,
     dl_subtitles: bool,
 ):
+    ''' Merge streams '''
     try:
         print("[*] Merging streams...")
+
+        # TODO: This section needs to be updated to allow for change to output dir and naming convention
 
         date_regex = r"(monday|tuesday|wednesday|thursday|friday) \d{0,2} (january|february|march|april|may|june|july|august|september|october|november|december)"
         if re.match(date_regex, episode_title, re.I):
@@ -368,6 +400,8 @@ def merge_streams(
 
 
 def check_required_config_values() -> None:
+    ''' Check that the required config parameters are present'''
+
     lets_go = True
     if not HMAC_SECRET:
         print("[*] HMAC_SECRET not set")
@@ -385,6 +419,8 @@ def check_required_config_values() -> None:
 
 
 def create_argument_parser():
+    ''' Process the command line arguments '''
+
     parser = argparse.ArgumentParser(description="Channel 5 downloader.")
     parser.add_argument(
         "--download",
@@ -401,6 +437,11 @@ def create_argument_parser():
     parser.add_argument(
         "--url", "-u", help="The URL of the episode to download", required=True
     )
+
+    parser.add_argument("--verbose", "--v", help="Verbose output", action="store_true")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Don't do anything, just print out proposed actions")
+
     args = parser.parse_args()
 
     if not args.url:
@@ -409,7 +450,12 @@ def create_argument_parser():
     return args
 
 
-def main():
+def main() -> None:
+    '''
+        Programme to download content from Channel 5 in the UK (my5.tv)
+        Cloned from the original https://github.com/Diazole/my5-dl
+    '''
+
     check_required_config_values()
     parser = create_argument_parser()
     url = parser.url
@@ -422,7 +468,7 @@ def main():
         print("[!] Failed to get the episode URL")
         sys.exit(1)
 
-    # Get the C5 content ID by parsing the reponse of the episode URL
+    # Get the C5 content ID by parsing the response of the episode URL
     (
         content_id,
         season_number,
