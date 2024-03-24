@@ -161,3 +161,7 @@ cython_debug/
 
 *.json
 .vscode/settings.json
+
+fred/
+tmp/
+downloads/

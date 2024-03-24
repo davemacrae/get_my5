@@ -3,6 +3,8 @@
 # pylint: disable=consider-using-f-string
 # pylint: disable=raise-missing-from
 # pylint: disable=line-too-long
+# pylint: disable=used-before-assignment
+# pylint: disable=invalid-name
 
 '''
     DONE: Allow user to specify Audio type
@@ -348,9 +350,6 @@ def merge_streams(
             else:
                 episode_title = ""
 
-        season_number = f"S{season_number}"
-        episode_number = f"E{episode_number}"
-
         if len(episode_title.split(":")) == 2:
             episode_title = episode_title.split(":")[1]
 
@@ -360,8 +359,15 @@ def merge_streams(
         ):
             episode_title = ""
 
-        output_dir = f"{DOWNLOAD_DIR}/{safe_name(show_title)}"
+    # added line to specify creating the output dir with a Season XX bit
+        if arguments.season:
+            output_dir = f"{DOWNLOAD_DIR}/{safe_name(show_title)}/Season {season_number}"
+        else:
+            output_dir = f"{DOWNLOAD_DIR}/{safe_name(show_title)}"
         os.makedirs(output_dir, exist_ok=True)
+
+        season_number = f"S{season_number}"
+        episode_number = f"E{episode_number}"
 
         output_dir += " ".join(
             f"/{safe_name(show_title)} {season_number}{episode_number} {episode_title}".split()
@@ -451,6 +457,7 @@ def create_argument_parser():
     parser.add_argument("--verbose", "--v", help="Verbose output (TODO)", action="store_true")
     parser.add_argument("--dry-run", action="store_true",
                         help="Don't do anything, just print out proposed actions (TODO)")
+    parser.add_argument("--season", help="Include Season in output dir", action="store_true")
 
     args = parser.parse_args()
 
