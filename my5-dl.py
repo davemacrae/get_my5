@@ -10,7 +10,7 @@
     DONE: Allow user to specify Audio type
     TODO: Allow user to specify verbose output, default to quiet
     TODO: Allow user to specify output directory
-    TODO: Allow user to specify naming convention to cope with Plex
+    DONE: Allow user to specify naming convention to cope with Plex
 '''
 
 import argparse
@@ -331,7 +331,7 @@ def merge_streams(
     try:
         print("[*] Merging streams...")
 
-        # TODO: This section needs to be updated to allow for change to output dir and naming convention
+        # DONE: This section needs to be updated to allow for change to output dir and naming convention
 
         date_regex = r"(monday|tuesday|wednesday|thursday|friday) \d{0,2} (january|february|march|april|may|june|july|august|september|october|november|december)"
         if re.match(date_regex, episode_title, re.I):
@@ -359,7 +359,7 @@ def merge_streams(
         ):
             episode_title = ""
 
-    # added line to specify creating the output dir with a Season XX bit
+        # added line to specify creating the output dir with a Season XX bit
         if arguments.season:
             output_dir = f"{DOWNLOAD_DIR}/{safe_name(show_title)}/Season {season_number}"
         else:

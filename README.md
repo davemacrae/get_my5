@@ -33,6 +33,8 @@ py .\my5-dl.py --download --subtitles --url "https://www.channel5.com/show/secre
 -d, --download   Download content.
 -s, --subtitles  Download subtitles.
 -u, --url        URL of the episode to download.
+--season         Include Season in output dir
+-ad, --audio-description    Download Audio Description audio track
 ```
 
 ## Config
