@@ -9,7 +9,7 @@
 '''
     DONE: Allow user to specify Audio type
     TODO: Allow user to specify verbose output, default to quiet
-    TODO: Allow user to specify output directory
+    DONE: Allow user to specify output directory
     DONE: Allow user to specify naming convention to cope with Plex
 '''
 
