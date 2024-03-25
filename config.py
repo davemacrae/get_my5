@@ -2,18 +2,16 @@
 # pylint: disable=line-too-long
 
 # Configurable
+from decouple import config
 
-HMAC_SECRET = "MW2TTBTfnS+XsTnmcrF93A=="
-AES_KEY = "LdKE40XhEkzCT2amEoud0Q=="
-WVD_PATH = "fred/google_aosp_on_ia_emulator_14.0.0_dade36cc_4464_l3.wvd"
+HMAC_SECRET = config('HMAC_SECRET', default="")
+AES_KEY = config('AES_KEY', default="")
+WVD_PATH = config('WVD_PATH', default="")
 
-# HMAC_SECRET = ""
-# AES_KEY = ""
-# WVD_PATH = ""
-DOWNLOAD_DIR = "/media/tv"
-TMP_DIR = "./tmp"
-BIN_DIR = "./bin"
-USE_BIN_DIR = False
+DOWNLOAD_DIR = config('DOWNLOAD_DIR', default="./downloads")
+TMP_DIR = config('TMP_DIR', default="./tmp")
+BIN_DIR = config('BIN_DIR', default="./bin")
+USE_BIN_DIR = config('USE_BIN_DIR', default=False, cast=bool)
 
 # Don't touch
 APP_NAME = "my5desktopng"

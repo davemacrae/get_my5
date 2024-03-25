@@ -49,6 +49,13 @@ Config is located in `config.py`
 `TMP_DIR` - Path to your temp directory  
 `WVD_PATH` - Path to your WVD file
 
+All the above config variables can be overridden by creating a `.env` file, a `settings.ini` file. This
+is recommended for `HMAC_SECRET` and `AES_KEY` to prevent Git warnings.
+
+In Linux it is also possible to override the values by specifying the value on the command line.
+
+See <https://pypi.org/project/python-decouple/> for full details.
+
 ## Retrieving Keys
 
 The `HMAC_SECRET` and `AES_KEY` keys can be retrieved by opening `./keys/retrieve-keys.html` in your browser.
