@@ -11,7 +11,6 @@ import sys
 
 from config import TMP_DIR
 
-
 def b64_url_to_std(val: str) -> str:
     ''' Utility Functions '''
 

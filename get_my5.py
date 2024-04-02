@@ -31,13 +31,7 @@ from pywidevine.device import Device
 from pywidevine.cdm import Cdm
 
 from Crypto.Cipher import AES
-from utility import (
-    b64_std_to_url,
-    b64_url_to_std,
-    delete_temp_files,
-    print_with_asterisk,
-    safe_name,
-)
+
 from config import (
     AES_KEY,
     APP_NAME,
@@ -50,6 +44,14 @@ from config import (
     TMP_DIR,
     USE_BIN_DIR,
     WVD_PATH,
+)
+
+from utility import (
+    b64_std_to_url,
+    b64_url_to_std,
+    delete_temp_files,
+    print_with_asterisk,
+    safe_name,
 )
 
 
@@ -142,6 +144,7 @@ def get_content_response(content_url: str) -> dict | None:
     try:
         print("[*] Getting content response...")
         r = requests.get(content_url, headers=DEFAULT_JSON_HEADERS, timeout=10)
+        # if code 403 then get new keys
         if r.status_code != 200:
             print(
                 f"[!] Received status code '{r.status_code}' when attempting to get the content response"
@@ -279,6 +282,10 @@ def download_streams(mpd: str, show_title: str, episode_title: str) -> str:
         ]
         subprocess.run(args, check=True)
         return output_title
+    except KeyboardInterrupt:
+        print ("Shutdown requested...exiting")
+        delete_temp_files()
+        sys.exit(130)
     except Exception as ex:
         print(f"[!] Exception thrown when attempting to download streams: {ex}")
         raise
@@ -313,6 +320,11 @@ def decrypt_streams(decryption_key: str, output_title: str) -> list:
             if "encrypted_" in file:
                 os.remove(f"{TMP_DIR}/{file}")
         return files
+    except KeyboardInterrupt:
+        print ("Shutdown requested...exiting")
+        delete_temp_files()
+        sys.exit(130)
+
     except Exception as ex:
         print(f"[!] Exception thrown when attempting to decrypt the streams: {ex}")
         raise
