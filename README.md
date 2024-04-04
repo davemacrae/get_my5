@@ -69,7 +69,9 @@ The application hmac-aes-update.py can be used to automatically update these val
 
 ### Example usage
 
+```bash
 ./hmac-aes-update.py --env .env --keys file://$HOME/src/get_my5/keys/retrieve-keys.html
+```
 
 ## Disclaimer
 
