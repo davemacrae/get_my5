@@ -50,7 +50,12 @@ Config is located in `config.py`
 `WVD_PATH` - Path to your WVD file
 
 All the above config variables can be overridden by creating a `.env` file, a `settings.ini` file. This
-is recommended for `HMAC_SECRET` and `AES_KEY` to prevent Git warnings.
+is recommended for `HMAC_SECRET` and `AES_KEY` to prevent Git warnings. The programme looks in:
+        $HOME/.config/get_my5/.env
+        $HOME/.get_my5/.env
+        ./.env
+
+As we use pathlib the function is compatible with windows.
 
 In Linux it is also possible to override the values by specifying the value on the command line.
 
@@ -59,6 +64,12 @@ See <https://pypi.org/project/python-decouple/> for full details.
 ## Retrieving Keys
 
 The `HMAC_SECRET` and `AES_KEY` keys can be retrieved by opening `./keys/retrieve-keys.html` in your browser.
+
+The application hmac-aes-update.py can be used to automatically update these values:
+
+### Example usage
+
+./hmac-aes-update.py --env .env --keys file://$HOME/src/get_my5/keys/retrieve-keys.html
 
 ## Disclaimer
 
