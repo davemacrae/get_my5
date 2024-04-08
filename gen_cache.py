@@ -5,6 +5,8 @@
 import sys
 import sqlite3
 from sqlite3 import Error
+import argparse
+from pathlib import Path
 
 from httpx import Client
 
@@ -16,16 +18,47 @@ class Show:
         self.url = url
         self.alt_title = alt_title
 
-def create_connection():
-    conn = None
-    try:
-        conn = sqlite3.connect('fred.db')
-    except Error as e:
-        print(e)
-    return conn
+def create_connection(args):
+    ''' Connect to database.
+        If a database name is provided then attempt to connect to it
+        If the --create flag has been passed then explicitly create a new DB 
+        or zero out (by deletion) an existing one.
 
-def create_database():
-    con = create_connection()
+        If no db name has been provided and the --create option isn't given, try
+        to create a new DB in the usual places.
+    '''
+    if args.db:
+        try:
+            cache_db = Path(args.db)
+            if not cache_db.is_file() and not args.create:
+                print (f"{cache_db} does not exist, use --create to create it")
+                sys.exit(-1)
+
+            if cache_db.is_file() and args.create:
+                cache_db.unlink()
+            return sqlite3.connect(cache_db)
+        except Error as e:
+            print(f"{e} DB File is {cache_db}")
+            sys.exit()
+
+    home_dir = Path.home()
+    cache_db = home_dir / ".config" / "get_my5" / "cache.db"
+    if not cache_db.is_file() and not args.create:
+        print (f"Default DB, {cache_db}, does not exist, use --create to create it")
+        sys.exit(-1)
+
+    try:
+        cache_db.parent.mkdir(parents=True, exist_ok=True)
+        return sqlite3.connect(cache_db)
+    except PermissionError:
+        print (f"You don't have permission to create the directory {cache_db.parent}")
+        sys.exit(-1)
+    except Error as e:
+        print(f"{e} - DB File is {cache_db}")
+        sys.exit(-1)
+
+def create_database(con):
+
     cur = con.cursor()
 
     sql = '''
@@ -47,7 +80,8 @@ def create_database():
         id INT,
         season_number INT,
         season_name VARCHAR,
-        numberOfEpisodes INT
+        numberOfEpisodes INT,
+        UNIQUE(id)
     );
     '''
     cur.execute(sql)
@@ -59,16 +93,17 @@ def create_database():
         episode_name VARCHAR,
         episode_number INT,
         episode_description VARCHAR,
-        episode_url VARCHAR
+        episode_url VARCHAR,
+        UNIQUE(episode_url)
     );
     '''
     cur.execute(sql)
-    return con, cur
+    return cur
 
-def get_all_shows():
+def get_all_shows(con):
     ''' Perform a keyword search on the Channel 5 site '''
 
-    con, cur = create_database()
+    cur = create_database(con)
 
     client = Client(
         headers={
@@ -79,7 +114,12 @@ def get_all_shows():
         })
 
     url = "https://corona.channel5.com/shows/search.json?platform=my5desktop&friendly=1"
-    response = client.get(url, timeout=30)
+    try:
+        response = client.get(url, timeout=30)
+    except KeyboardInterrupt:
+        print ("Interrupted - No data committed")
+        sys.exit(-1)
+
     myjson = response.json()
 
     show_data = jmespath.search("""
@@ -113,7 +153,11 @@ def get_all_shows():
 def get_seasons(cur, client, show) -> None:
 
     url =f"https://corona.channel5.com/shows/{show['alt_title']}/seasons.json?platform=my5desktop&friendly=1"
-    response = client.get(url, timeout=30)
+    try:
+        response = client.get(url, timeout=30)
+    except KeyboardInterrupt:
+        print ("Interrupted - No data committed")
+        sys.exit(-1)
     myjson = response.json()
 
     season_data = jmespath.search("""
@@ -136,7 +180,7 @@ def get_seasons(cur, client, show) -> None:
         else:
             get_one_off(cur, show)
 
-def get_one_off (cur, show):
+def get_one_off (cur, show) -> None:
 
     url = f"https://www.channel5.com/show/{show['alt_title']}"
     if not show['synopsis']:
@@ -151,10 +195,16 @@ def get_one_off (cur, show):
     )'''
     cur.execute(sql)
 
-def get_episodes (cur, client, show, season):
+def get_episodes (cur, client, show, season) -> None:
 
     episode_url = f"https://corona.channel5.com/shows/{show['alt_title']}/seasons/{season['season_number']}/episodes.json?platform=my5desktop&friendly=1&linear=true"
-    response = client.get(episode_url)
+
+    try:
+        response = client.get(episode_url, timeout=30)
+    except KeyboardInterrupt:
+        print ("Interrupted - No data committed")
+        sys.exit(-1)
+
     myjson = response.json()
     results = jmespath.search("""
                     episodes[*].{
@@ -177,11 +227,35 @@ def get_episodes (cur, client, show, season):
 
     return
 
+def arg_parser():
+
+    ''' Process the command line arguments '''
+
+    parser = argparse.ArgumentParser(description="Channel 5 Cache Builder.")
+    parser.add_argument(
+        "--db",
+        help="Database name"
+    )
+    parser.add_argument(
+        "--create",
+        help="Create a new cache database",
+        default=False,
+        action="store_true",
+    )
+
+    args = parser.parse_args()
+
+    return args
 
 def main() -> None:
 
-    get_all_shows()
-    sys.exit()
+    args = arg_parser()
+
+    con = create_connection(args)
+
+    get_all_shows(con)
+
+    sys.exit(0)
 
 if __name__ == '__main__':
     main()
