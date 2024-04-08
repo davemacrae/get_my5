@@ -49,6 +49,9 @@ def create_connection(args):
 
     try:
         cache_db.parent.mkdir(parents=True, exist_ok=True)
+        if args.create:
+            cache_db.unlink()
+
         return sqlite3.connect(cache_db)
     except PermissionError:
         print (f"You don't have permission to create the directory {cache_db.parent}")
@@ -81,7 +84,7 @@ def create_database(con):
         season_number INT,
         season_name VARCHAR,
         numberOfEpisodes INT,
-        UNIQUE(id)
+        UNIQUE(id, season_number)
     );
     '''
     cur.execute(sql)
@@ -90,6 +93,7 @@ def create_database(con):
         rowid INTEGER PRIMARY KEY AUTOINCREMENT,
         id INT,
         title VARCHAR,
+        season_number INT,
         episode_name VARCHAR,
         episode_number INT,
         episode_description VARCHAR,
@@ -215,9 +219,10 @@ def get_episodes (cur, client, show, season) -> None:
                     } """,  myjson)
     for _, value in enumerate(results):
         url = f'''{show['alt_title']}/{season['season_name']}/{value['episode_name']}'''
-        sql = f'''INSERT OR IGNORE INTO episodes (id, title, episode_name, episode_number, episode_description, episode_url) VALUES (
+        sql = f'''INSERT OR IGNORE INTO episodes (id, title, season_number, episode_name, episode_number, episode_description, episode_url) VALUES (
                 {show['id']},
                 '{value['title'].replace("'", "''")}',
+                {season['season_number']},
                 '{value['episode_name'].replace("'", "''")}',
                 {value['ep_num']},
                 '{value['ep_description'].replace("'", "''")}',
