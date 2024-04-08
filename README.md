@@ -73,6 +73,25 @@ The application hmac-aes-update.py can be used to automatically update these val
 ./hmac-aes-update.py --env .env --keys file://$HOME/src/get_my5/keys/retrieve-keys.html
 ```
 
+## Cache Generation
+
+The next version of `get_my5.py` will have the ability to search a cache of all episodes if the URL is unknown.
+### Example usage
+
+```bash
+./gen_cache.py [-h] [--db DB] [--create]
+./gen_cache.py [-h] --db fred.db --create
+```
+
+### Arguments
+
+```bash
+--db   Alternative DB file name (Defaults to $HOME/.config/.get_m5/cache.db).
+--create  Explicit create needed if file does not exist.
+```
+
+
+
 ## Disclaimer
 
 1. This script requires a Widevine RSA key pair to retrieve the decryption key from the license server.
