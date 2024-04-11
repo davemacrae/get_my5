@@ -18,7 +18,7 @@ class Show:
         self.url = url
         self.alt_title = alt_title
 
-def create_connection(args):
+def create_connection():
     ''' Connect to database.
         If a database name is provided then attempt to connect to it
         If the --create flag has been passed then explicitly create a new DB 
@@ -146,6 +146,17 @@ def get_all_shows(con):
                     "{show['sub_genre']}",
                     "{show['synopsis']}"
                     )'''
+        # We can assume that if the cache is being built then all shows are new. Otherwise
+        # print that we have a new show
+        if not args.create:
+            query = f"SELECT {show['id']} from shows where id = {show['id']}"
+            cur.execute(query)
+            rows = cur.fetchall()
+            if not rows: # New Show
+                print (f"Found new show: {show['title']}")
+        else:
+            print (f"Found show: {show['title']}")
+
         cur.execute(sql)
 
         get_seasons(cur, client, show)
@@ -154,7 +165,7 @@ def get_all_shows(con):
     con.close()
     return
 
-def get_seasons(cur, client, show) -> None:
+def get_seasons(cur: sqlite3.Cursor, client, show) -> None:
 
     url =f"https://corona.channel5.com/shows/{show['alt_title']}/seasons.json?platform=my5desktop&friendly=1"
     try:
@@ -174,12 +185,23 @@ def get_seasons(cur, client, show) -> None:
     for _, season in enumerate(season_data):
         sql = f'''INSERT OR IGNORE INTO seasons(id, season_number, season_name, numberOfEpisodes) VALUES (
                     {show['id']},
-                    "{season['season_number']}",
+                    {season['season_number']},
                     "{season['season_name']}",
-                    "{season['numberOfEpisodes']}"
+                    {season['numberOfEpisodes']}
                     )'''
-        cur.execute(sql)
         if season['season_number']:
+            query = f"SELECT id, season_number, numberOfEpisodes from seasons where id = {show['id']} and season_number={season['season_number']}"
+            cur.execute(query)
+            rows = cur.fetchall()
+            if not rows:
+                print(f"New season for {show['title']}, Season {season['season_number']}")
+            else:
+                if season['numberOfEpisodes'] > rows[0][2]:
+                    print(f"Found extra episodes of {show['title']}, Season {season['season_number']} was {rows[0][2]} now {season['numberOfEpisodes']}")
+                if season['numberOfEpisodes'] < rows[0][2]:
+                    print(f"Episodes removed from {show['title']}, Season {season['season_number']} was {rows[0][2]} now {season['numberOfEpisodes']}")
+
+            cur.execute(sql)
             get_episodes(cur, client, show, season)
         else:
             get_one_off(cur, show)
@@ -199,7 +221,7 @@ def get_one_off (cur, show) -> None:
     )'''
     cur.execute(sql)
 
-def get_episodes (cur, client, show, season) -> None:
+def get_episodes (cur: sqlite3.Cursor, client, show, season) -> None:
 
     episode_url = f"https://corona.channel5.com/shows/{show['alt_title']}/seasons/{season['season_number']}/episodes.json?platform=my5desktop&friendly=1&linear=true"
 
@@ -248,19 +270,19 @@ def arg_parser():
         action="store_true",
     )
 
-    args = parser.parse_args()
 
-    return args
+    return parser.parse_args()
 
 def main() -> None:
 
-    args = arg_parser()
-
-    con = create_connection(args)
+    con = create_connection()
 
     get_all_shows(con)
 
     sys.exit(0)
 
 if __name__ == '__main__':
+
+    args = arg_parser()
+
     main()
