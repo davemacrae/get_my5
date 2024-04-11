@@ -183,23 +183,29 @@ def get_seasons(cur: sqlite3.Cursor, client, show) -> None:
                         } 
                         """,  myjson)
     for _, season in enumerate(season_data):
-        sql = f'''INSERT OR IGNORE INTO seasons(id, season_number, season_name, numberOfEpisodes) VALUES (
-                    {show['id']},
-                    {season['season_number']},
-                    "{season['season_name']}",
-                    {season['numberOfEpisodes']}
-                    )'''
         if season['season_number']:
             query = f"SELECT id, season_number, numberOfEpisodes from seasons where id = {show['id']} and season_number={season['season_number']}"
             cur.execute(query)
             rows = cur.fetchall()
             if not rows:
                 print(f"New season for {show['title']}, Season {season['season_number']}")
+                sql = f'''INSERT OR IGNORE INTO seasons(id, season_number, season_name, numberOfEpisodes) VALUES (
+                            {show['id']},
+                            {season['season_number']},
+                            "{season['season_name']}",
+                            {season['numberOfEpisodes']}
+                            )'''
             else:
                 if season['numberOfEpisodes'] > rows[0][2]:
                     print(f"Found extra episodes of {show['title']}, Season {season['season_number']} was {rows[0][2]} now {season['numberOfEpisodes']}")
                 if season['numberOfEpisodes'] < rows[0][2]:
                     print(f"Episodes removed from {show['title']}, Season {season['season_number']} was {rows[0][2]} now {season['numberOfEpisodes']}")
+                sql = f'''UPDATE seasons 
+                          SET
+                                numberOfEpisodes = {season['numberOfEpisodes']}
+                           WHERE 
+                                id = {show['id']} and season_number = {season['season_number']}
+                        '''
 
             cur.execute(sql)
             get_episodes(cur, client, show, season)
@@ -240,6 +246,12 @@ def get_episodes (cur: sqlite3.Cursor, client, show, season) -> None:
                     ep_description: s_desc
                     } """,  myjson)
     for _, value in enumerate(results):
+        query = f"SELECT season_number, episode_number FROM episodes WHERE season_number={season['season_number']} and episode_number={value['ep_num']} and id={show['id']}"
+        cur.execute(query)
+        rows = cur.fetchall()
+        if not rows:
+            print (f"Found new episode for {show['title']}, Episode {value['ep_num']} - {value['ep_description']}")
+
         url = f'''{show['alt_title']}/{season['season_name']}/{value['episode_name']}'''
         sql = f'''INSERT OR IGNORE INTO episodes (id, title, season_number, episode_name, episode_number, episode_description, episode_url) VALUES (
                 {show['id']},
