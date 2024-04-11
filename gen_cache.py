@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#pylint: disable=missing-function-docstring, missing-module-docstring, line-too-long, missing-class-docstring
+#pylint: disable=missing-function-docstring, missing-module-docstring, line-too-long, missing-class-docstring, used-before-assignment
 
 import sys
 import sqlite3
@@ -18,7 +18,7 @@ class Show:
         self.url = url
         self.alt_title = alt_title
 
-def create_connection():
+def create_connection() -> sqlite3.Connection:
     ''' Connect to database.
         If a database name is provided then attempt to connect to it
         If the --create flag has been passed then explicitly create a new DB 
@@ -60,7 +60,7 @@ def create_connection():
         print(f"{e} - DB File is {cache_db}")
         sys.exit(-1)
 
-def create_database(con):
+def create_database(con: sqlite3.Connection) -> sqlite3.Cursor:
 
     cur = con.cursor()
 
@@ -98,13 +98,13 @@ def create_database(con):
         episode_number INT,
         episode_description VARCHAR,
         episode_url VARCHAR,
-        UNIQUE(episode_url)
+        UNIQUE(episode_number, episode_url)
     );
     '''
     cur.execute(sql)
     return cur
 
-def get_all_shows(con):
+def get_all_shows(con: sqlite3.Connection):
     ''' Perform a keyword search on the Channel 5 site '''
 
     cur = create_database(con)
@@ -200,7 +200,7 @@ def get_seasons(cur: sqlite3.Cursor, client, show) -> None:
                     print(f"Found extra episodes of {show['title']}, Season {season['season_number']} was {rows[0][2]} now {season['numberOfEpisodes']}")
                 if season['numberOfEpisodes'] < rows[0][2]:
                     print(f"Episodes removed from {show['title']}, Season {season['season_number']} was {rows[0][2]} now {season['numberOfEpisodes']}")
-                sql = f'''UPDATE seasons 
+                sql = f'''UPDATE seasons
                           SET
                                 numberOfEpisodes = {season['numberOfEpisodes']}
                            WHERE 
@@ -250,9 +250,9 @@ def get_episodes (cur: sqlite3.Cursor, client, show, season) -> None:
         cur.execute(query)
         rows = cur.fetchall()
         if not rows:
-            print (f"Found new episode for {show['title']}, Episode {value['ep_num']} - {value['ep_description']}")
+            print (f"Found new episode for {show['title']}, Season {season['season_number']}, Episode {value['ep_num']} - {value['ep_description']}")
 
-        url = f'''{show['alt_title']}/{season['season_name']}/{value['episode_name']}'''
+        url = f''' https://www.channel5.com/show/{show['alt_title']}/{season['season_name']}/{value['episode_name']}'''
         sql = f'''INSERT OR IGNORE INTO episodes (id, title, season_number, episode_name, episode_number, episode_description, episode_url) VALUES (
                 {show['id']},
                 '{value['title'].replace("'", "''")}',
