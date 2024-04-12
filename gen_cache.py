@@ -98,6 +98,8 @@ def create_database(con: sqlite3.Connection) -> sqlite3.Cursor:
         episode_number INT,
         episode_description VARCHAR,
         episode_url VARCHAR,
+        episode_id VARCHAR,
+        updated 
         UNIQUE(episode_number, episode_url)
     );
     '''
@@ -195,6 +197,7 @@ def get_seasons(cur: sqlite3.Cursor, client, show) -> None:
                             "{season['season_name']}",
                             {season['numberOfEpisodes']}
                             )'''
+                # TODO: We need to check if a season has ben removed.
             else:
                 if season['numberOfEpisodes'] > rows[0][2]:
                     print(f"Found extra episodes of {show['title']}, Season {season['season_number']} was {rows[0][2]} now {season['numberOfEpisodes']}")
@@ -243,24 +246,27 @@ def get_episodes (cur: sqlite3.Cursor, client, show, season) -> None:
                     title: title,
                     episode_name: f_name,
                     ep_num: ep_num,
-                    ep_description: s_desc
+                    ep_description: s_desc,
+                    ep_id: id
                     } """,  myjson)
     for _, value in enumerate(results):
+        # TODO: Need to figure out if an episode has been deleted.
         query = f"SELECT season_number, episode_number FROM episodes WHERE season_number={season['season_number']} and episode_number={value['ep_num']} and id={show['id']}"
         cur.execute(query)
         rows = cur.fetchall()
         if not rows:
             print (f"Found new episode for {show['title']}, Season {season['season_number']}, Episode {value['ep_num']} - {value['ep_description']}")
 
-        url = f''' https://www.channel5.com/show/{show['alt_title']}/{season['season_name']}/{value['episode_name']}'''
-        sql = f'''INSERT OR IGNORE INTO episodes (id, title, season_number, episode_name, episode_number, episode_description, episode_url) VALUES (
+        url = f'''https://www.channel5.com/show/{show['alt_title']}/{season['season_name']}/{value['episode_name']}'''
+        sql = f'''INSERT OR IGNORE INTO episodes (id, title, season_number, episode_name, episode_number, episode_description, episode_url, episode_id) VALUES (
                 {show['id']},
                 '{value['title'].replace("'", "''")}',
                 {season['season_number']},
                 '{value['episode_name'].replace("'", "''")}',
                 {value['ep_num']},
                 '{value['ep_description'].replace("'", "''")}',
-                '{url}'
+                '{url}',
+                '{value['ep_id']}'
         )'''
         cur.execute(sql)
 
