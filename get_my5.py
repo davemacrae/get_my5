@@ -684,16 +684,16 @@ def create_argument_parser():
     group = parser.add_mutually_exclusive_group(required=True)
 
     group.add_argument("--url",     help="The URL of the episode to download")
-    group.add_argument("--search",  help="Name of show to search for")
+    group.add_argument("--search",  help="Name of show to search for (TODO)")
     group.add_argument("--show",    help="Name of show to download")
 
     group_episode = parser.add_mutually_exclusive_group()
     group_episode.add_argument("--episode", help="Episode wanted")
-    group_episode.add_argument('--episode-list', type=list_of_ints, help="list of episodes wanted")
+    group_episode.add_argument('--episode-list', type=list_of_ints, help="list of episodes wanted (TODO)")
 
     group_season = parser.add_mutually_exclusive_group()
     group_season.add_argument("--season",  help="Season wanted")
-    group_season.add_argument('--season-list', type=list_of_ints, help="List of Seasons wanted")
+    group_season.add_argument('--season-list', type=list_of_ints, help="List of Seasons wanted (TODO)")
 
     parser.add_argument("--db",      help="Path to database")
 
@@ -717,7 +717,7 @@ def create_argument_parser():
 def main() -> None:
     '''
         Programme to download content from Channel 5 in the UK (my5.tv)
-        Cloned from the original https://github.com/Diazole/my5-dl
+        Cloned and extensively modified from the original https://github.com/Diazole/my5-dl
     '''
     fetch_url = []
     if arguments.show:
