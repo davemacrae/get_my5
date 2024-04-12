@@ -20,50 +20,71 @@ pip install -r requirements.txt
 ## Usage
 
 ```bash
-# Windows
-py .\my5-dl.py --download --subtitles --url "https://www.channel5.com/show/secrets-of-our-universe-with-tim-peake/season-1/the-planets"
-
-# Linux
-./my5-dl.py --download --subtitles --url "https://www.channel5.com/show/secrets-of-our-universe-with-tim-peake/season-1/the-planets"
+usage: get_my5.py [-h] (--url URL | --search SEARCH | --show SHOW) 
+                [--episode EPISODE | --episode-list EPISODE_LIST]
+                [--season SEASON | --season-list SEASON_LIST] [--db DB]
+                [--download] [--subtitles] [--audio-description] [--verbose]
+                [--dry-run] [--plex]
+                [--force]
 ```
 
-## Arguments
+### Arguments
 
 ```bash
--d, --download   Download content.
--s, --subtitles  Download subtitles.
--u, --url        URL of the episode to download.
---season         Include Season in output dir
--ad, --audio-description    Download Audio Description audio track
+  --help, -h            show this help message and exit
+  --url URL             The URL of the episode to download
+  --search SEARCH       Name of show to search for
+  --show SHOW           Name of show to download
+  --episode EPISODE     Episode wanted
+  --episode-list EPISODE_LIST
+                        list of episodes wanted
+  --season SEASON       Season wanted
+  --season-list SEASON_LIST
+                        List of Seasons wanted
+  --db DB               Path to database
+  --download, -d        Flag to download the episode
+  --subtitles, -s       Flag to download subtitles
+  --audio-description, -ad
+                        Download Audio Description audio track
+  --verbose, -v         Verbose output
+  --dry-run             Don't do anything, just print out proposed actions (TODO)
+  --plex                Include Season in output dir
+  --force               force overwrite of output file
+
 ```
 
 ## Config
 
 Config is located in `config.py`
 
-`HMAC_SECRET` - HMAC secret used to generate the authentication key for the content URL  
-`AES_KEY` - AES key used to decrypt the data field of the API response  
-`BIN_DIR` - Path to where your binaries installed  
-`USE_BIN_DIR` - Flag indicating whether to use the binaries in the BIN_DIR path or your system/user path  
+`HMAC_SECRET` - HMAC secret used to generate the authentication key for the
+                content URL  
+`AES_KEY` -     AES key used to decrypt the data field of the API response  
+`BIN_DIR` -     Path to where your binaries installed  
+`USE_BIN_DIR` - Flag indicating whether to use the binaries in the BIN_DIR
+                path or your system/user path  
 `DOWNLOAD_DIR` - Path to your download directory  
-`TMP_DIR` - Path to your temp directory  
-`WVD_PATH` - Path to your WVD file
+`TMP_DIR` -     Path to your temp directory  
+`WVD_PATH` -    Path to your WVD file
 
-All the above config variables can be overridden by creating a `.env` file, a `settings.ini` file. This
-is recommended for `HMAC_SECRET` and `AES_KEY` to prevent Git warnings. The programme looks in:
+All the above config variables can be overridden by creating a `.env` file,
+a `settings.ini` file. This is recommended for `HMAC_SECRET` and `AES_KEY`
+to prevent Git warnings. The programme looks in:
         $HOME/.config/get_my5/.env
         $HOME/.get_my5/.env
         ./.env
 
-As we use pathlib the function is compatible with windows.
+As we use pathlib, the function is compatible with windows.
 
-In Linux it is also possible to override the values by specifying the value on the command line.
+In Linux it is also possible to override the values by specifying the value on the
+command line.
 
 See <https://pypi.org/project/python-decouple/> for full details.
 
 ## Retrieving Keys
 
-The `HMAC_SECRET` and `AES_KEY` keys can be retrieved by opening `./keys/retrieve-keys.html` in your browser.
+The `HMAC_SECRET` and `AES_KEY` keys can be retrieved by opening
+`./keys/retrieve-keys.html` in your browser.
 
 The application hmac-aes-update.py can be used to automatically update these values:
 
@@ -75,12 +96,11 @@ The application hmac-aes-update.py can be used to automatically update these val
 
 ## Cache Generation
 
-The next version of `get_my5.py` will have the ability to search a cache of all episodes if the URL is unknown.
-### Example usage
+### Usage
 
 ```bash
 ./gen_cache.py [-h] [--db DB] [--create]
-./gen_cache.py [-h] --db fred.db --create
+
 ```
 
 ### Arguments
@@ -90,9 +110,9 @@ The next version of `get_my5.py` will have the ability to search a cache of all 
 --create  Explicit create needed if file does not exist.
 ```
 
-
-
 ## Disclaimer
 
-1. This script requires a Widevine RSA key pair to retrieve the decryption key from the license server.
-2. This script is purely for educational purposes and should not be used to bypass DRM protected content.
+1. This script requires a Widevine RSA key pair to retrieve the decryption key
+   from the license server.
+2. This script is purely for educational purposes and should not be used to
+   bypass DRM protected content.
