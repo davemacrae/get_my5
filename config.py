@@ -65,4 +65,3 @@ DEFAULT_JSON_HEADERS = {
     "Accept": "*/*",
     "User-Agent": USER_AGENT,
 }
-
