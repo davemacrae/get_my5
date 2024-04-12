@@ -99,7 +99,6 @@ def create_database(con: sqlite3.Connection) -> sqlite3.Cursor:
         episode_description VARCHAR,
         episode_url VARCHAR,
         episode_id VARCHAR,
-        updated 
         UNIQUE(episode_number, episode_url)
     );
     '''
