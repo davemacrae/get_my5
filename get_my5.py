@@ -534,6 +534,7 @@ def create_connection() -> sqlite3.Connection:
         If no db name has been provided and the --create option isn't given, try
         to create a new DB in the usual places.
     '''
+    con = None
     if arguments.db:
         try:
             cache_db = Path(arguments.db)
@@ -541,10 +542,14 @@ def create_connection() -> sqlite3.Connection:
                 print (f"{cache_db} does not exist, please create it")
                 sys.exit(-1)
 
-            return sqlite3.connect(cache_db)
+            con = sqlite3.connect(cache_db)
+        except sqlite3.Error as error:
+            print("Failed to connect to sqlite database", error)
+            sys.exit()
         except Error as e:
             print(f"{e} DB File is {cache_db}")
             sys.exit()
+        return con
 
     home_dir = Path.home()
     cache_db = home_dir / ".config" / "get_my5" / "cache.db"
@@ -577,9 +582,11 @@ where
     episodes.season_number = ? and 
     episode_number=?
 '''
-
+    con = None
     try:
         con = create_connection()
+        if not con:
+            sys.exit(-1)
         cur = con.cursor()
         cur.execute(sql, (show, season, episode))
         rows = cur.fetchall()
@@ -614,9 +621,11 @@ where
     shows.title = ? and 
     episodes.season_number = ?
 '''
-
+    con = None
     try:
         con = create_connection()
+        if not con:
+            sys.exit(-1)
         cur = con.cursor()
         cur.execute(sql, (show, season))
         rows = cur.fetchall()
@@ -636,6 +645,65 @@ where
             con.close()
     return url
 
+def search_show (show: str) -> list:
+
+    ''' Find the episode in the cache '''
+    url = []
+
+    show_sql = '''
+select
+    id, title
+from 
+    shows
+where 
+    shows.title like ?
+'''
+    seasons_sql = '''
+select
+    count(*)
+from 
+    seasons
+where 
+    id = ?
+'''
+    episodes_sql = '''
+select
+    count(*)
+from 
+    episodes
+where 
+    id = ?
+'''
+
+    con = None
+    try:
+        con = create_connection()
+        if not con:
+            sys.exit(-1)
+        cur = con.cursor()
+        cur.execute(show_sql, (f"%{show}%",))
+        rows = cur.fetchall()
+        if rows:
+            for r in rows: # found
+                cur.execute(seasons_sql, (r[0], ))
+                seasons = cur.fetchall()[0][0]
+                cur.execute(episodes_sql, (r[0], ))
+                episodes = cur.fetchall()[0][0]
+                if seasons == 0:
+                    print (f"Found {r[1]} (One Off)")
+                else:
+                    print (f"Found {r[1]} with {seasons} Seasons and {episodes} Episodes")
+        else:
+            print (f"Can't find a match for {show}")
+        cur.close()
+    except sqlite3.Error as error:
+        print("Failed to read data from sqlite table", error)
+    finally:
+        if con:
+            con.close()
+    return url
+
+
 def get_show_url (show: str) -> list:
 
     ''' Find the episode in the cache '''
@@ -650,9 +718,11 @@ where
     shows.id = episodes.id and 
     shows.title = ?
 '''
-
+    con = None
     try:
         con = create_connection()
+        if not con:
+            sys.exit(-1)
         cur = con.cursor()
         cur.execute(sql, (show,))
         rows = cur.fetchall()
@@ -719,6 +789,10 @@ def main() -> None:
         Programme to download content from Channel 5 in the UK (my5.tv)
         Cloned and extensively modified from the original https://github.com/Diazole/my5-dl
     '''
+    if arguments.search:
+        search_show (arguments.search)
+        return
+
     fetch_url = []
     if arguments.show:
         if arguments.episode: # we want a single episode (we know the season)
