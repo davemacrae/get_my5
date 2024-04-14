@@ -21,7 +21,7 @@ class Show:
 def create_connection() -> sqlite3.Connection:
     ''' Connect to database.
         If a database name is provided then attempt to connect to it
-        If the --create flag has been passed then explicitly create a new DB 
+        If the --create flag has been passed then explicitly create a new DB
         or zero out (by deletion) an existing one.
 
         If no db name has been provided and the --create option isn't given, try
@@ -37,8 +37,8 @@ def create_connection() -> sqlite3.Connection:
             if cache_db.is_file() and args.create:
                 cache_db.unlink()
             return sqlite3.connect(cache_db)
-        except Error as e:
-            print(f"{e} DB File is {cache_db}")
+        except Error as error:
+            print(f"{error} DB File is {cache_db}")
             sys.exit()
 
     home_dir = Path.home()
@@ -56,8 +56,8 @@ def create_connection() -> sqlite3.Connection:
     except PermissionError:
         print (f"You don't have permission to create the directory {cache_db.parent}")
         sys.exit(-1)
-    except Error as e:
-        print(f"{e} - DB File is {cache_db}")
+    except Error as error:
+        print(f"{error} - DB File is {cache_db}")
         sys.exit(-1)
 
 def create_database(con: sqlite3.Connection) -> sqlite3.Cursor:
@@ -105,7 +105,7 @@ def create_database(con: sqlite3.Connection) -> sqlite3.Cursor:
     cur.execute(sql)
     return cur
 
-def get_all_shows(con: sqlite3.Connection):
+def get_all_shows(con: sqlite3.Connection) -> None:
     ''' Perform a keyword search on the Channel 5 site '''
 
     cur = create_database(con)
@@ -135,36 +135,44 @@ def get_all_shows(con: sqlite3.Connection):
                                 synopsis: s_desc,
                                 genre: genre,
                                 sub_genre: primary_vod_genre
-                            } 
+                            }
                           """,  myjson)
 
     for _, show in enumerate(show_data):
-        sql = f'''INSERT OR IGNORE INTO shows(id, title, alt_title, genre, sub_genre, synopsis) VALUES (
-                    {show['id']},
-                    "{show['title']}",
-                    "{show['alt_title']}",
-                    "{show['genre']}",
-                    "{show['sub_genre']}",
-                    "{show['synopsis']}"
-                    )'''
+        sql = '''INSERT OR IGNORE INTO
+                    shows (id, title, alt_title, genre, sub_genre, synopsis)
+               VALUES (?, ?, ?, ?, ?, ?)'''
         # We can assume that if the cache is being built then all shows are new. Otherwise
         # print that we have a new show
         if not args.create:
-            query = f"SELECT {show['id']} from shows where id = {show['id']}"
-            cur.execute(query)
+            query = "SELECT ? from shows where id = ?"
+            try:
+                cur.execute(query, (show['id'], show['id'], ))
+            except sqlite3.Error as error:
+                print("Failed to connect to sqlite database", error)
+                sys.exit()
             rows = cur.fetchall()
             if not rows: # New Show
                 print (f"Found new show: {show['title']}")
         else:
             print (f"Found show: {show['title']}")
 
-        cur.execute(sql)
+        try:
+            cur.execute(sql, (
+                    show['id'],
+                    show['title'],
+                    show['alt_title'],
+                    show['genre'],
+                    show['sub_genre'],
+                    show['synopsis'], ))
+        except sqlite3.Error as error:
+            print("Failed to connect to sqlite database", error)
+            sys.exit()
 
         get_seasons(cur, client, show)
 
     con.commit()
     con.close()
-    return
 
 def get_seasons(cur: sqlite3.Cursor, client, show) -> None:
 
@@ -181,35 +189,38 @@ def get_seasons(cur: sqlite3.Cursor, client, show) -> None:
                             season_number: seasonNumber,
                             season_name: sea_f_name,
                             numberOfEpisodes: numberOfEpisodes
-                        } 
+                        }
                         """,  myjson)
     for _, season in enumerate(season_data):
         if season['season_number']:
-            query = f"SELECT id, season_number, numberOfEpisodes from seasons where id = {show['id']} and season_number={season['season_number']}"
-            cur.execute(query)
+            query = "SELECT id, season_number, numberOfEpisodes from seasons where id = ? and season_number= ?"
+            try:
+                cur.execute(query, (show['id'], season['season_number'], ))
+            except sqlite3.Error as error:
+                print("Failed to connect to sqlite database", error)
+                sys.exit()
             rows = cur.fetchall()
             if not rows:
                 print(f"New season for {show['title']}, Season {season['season_number']}")
-                sql = f'''INSERT OR IGNORE INTO seasons(id, season_number, season_name, numberOfEpisodes) VALUES (
-                            {show['id']},
-                            {season['season_number']},
-                            "{season['season_name']}",
-                            {season['numberOfEpisodes']}
-                            )'''
-                # TODO: We need to check if a season has ben removed.
+                sql = '''INSERT OR IGNORE INTO seasons(id, season_number, season_name, numberOfEpisodes) VALUES (?, ?, ?, ?)'''
+                try:
+                    cur.execute(sql, (show['id'], season['season_number'], season['season_name'], season['numberOfEpisodes'], ))
+                except sqlite3.Error as error:
+                    print("Failed to connect to sqlite database", error)
+                    sys.exit()
+                # TODO: We need to check if a season has been removed.
             else:
                 if season['numberOfEpisodes'] > rows[0][2]:
                     print(f"Found extra episodes of {show['title']}, Season {season['season_number']} was {rows[0][2]} now {season['numberOfEpisodes']}")
                 if season['numberOfEpisodes'] < rows[0][2]:
                     print(f"Episodes removed from {show['title']}, Season {season['season_number']} was {rows[0][2]} now {season['numberOfEpisodes']}")
-                sql = f'''UPDATE seasons
-                          SET
-                                numberOfEpisodes = {season['numberOfEpisodes']}
-                           WHERE 
-                                id = {show['id']} and season_number = {season['season_number']}
-                        '''
+                sql = '''UPDATE seasons SET numberOfEpisodes = ? WHERE id = ? and season_number = ?'''
+                try:
+                    cur.execute(sql, (season['numberOfEpisodes'], show['id'], season['season_number'], ))
+                except sqlite3.Error as error:
+                    print("Failed to connect to sqlite database", error)
+                    sys.exit()
 
-            cur.execute(sql)
             get_episodes(cur, client, show, season)
         else:
             get_one_off(cur, show)
@@ -220,14 +231,12 @@ def get_one_off (cur, show) -> None:
     if not show['synopsis']:
         show['synopsis'] = "None"
 
-    sql = f'''INSERT OR IGNORE INTO episodes (id, title, episode_description, episode_number, episode_url) VALUES (
-                {show['id']},
-                '{show['title'].replace("'", "''")}',
-                '{show['synopsis'].replace("'", "''")}',
-                0,
-                '{url}'
-    )'''
-    cur.execute(sql)
+    sql = "INSERT OR IGNORE INTO episodes (id, title, episode_description, episode_url) VALUES (?, ?, ?, ?)"
+    try:
+        cur.execute(sql, (show['id'], show['title'], show['synopsis'], url, ))
+    except sqlite3.Error as error:
+        print("Failed to connect to sqlite database", error)
+        sys.exit()
 
 def get_episodes (cur: sqlite3.Cursor, client, show, season) -> None:
 
@@ -250,26 +259,34 @@ def get_episodes (cur: sqlite3.Cursor, client, show, season) -> None:
                     } """,  myjson)
     for _, value in enumerate(results):
         # TODO: Need to figure out if an episode has been deleted.
-        query = f"SELECT season_number, episode_number FROM episodes WHERE season_number={season['season_number']} and episode_number={value['ep_num']} and id={show['id']}"
-        cur.execute(query)
+        query = "SELECT season_number, episode_number FROM episodes WHERE season_number=? and episode_number=? and id=?"
+        try:
+            cur.execute(query, (season['season_number'], value['ep_num'], show['id'], ))
+        except sqlite3.Error as error:
+            print("Failed to connect to sqlite database", error)
+            sys.exit()
         rows = cur.fetchall()
         if not rows:
             print (f"Found new episode for {show['title']}, Season {season['season_number']}, Episode {value['ep_num']} - {value['ep_description']}")
 
-        url = f'''https://www.channel5.com/show/{show['alt_title']}/{season['season_name']}/{value['episode_name']}'''
-        sql = f'''INSERT OR IGNORE INTO episodes (id, title, season_number, episode_name, episode_number, episode_description, episode_url, episode_id) VALUES (
-                {show['id']},
-                '{value['title'].replace("'", "''")}',
-                {season['season_number']},
-                '{value['episode_name'].replace("'", "''")}',
-                {value['ep_num']},
-                '{value['ep_description'].replace("'", "''")}',
-                '{url}',
-                '{value['ep_id']}'
-        )'''
-        cur.execute(sql)
-
-    return
+        url = f"https://www.channel5.com/show/{show['alt_title']}/{season['season_name']}/{value['episode_name']}"
+        sql = '''INSERT OR IGNORE INTO
+                    episodes (id, title, season_number, episode_name, episode_number, episode_description, episode_url, episode_id)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               '''
+        try:
+            cur.execute(sql, (
+                show['id'],
+                value['title'],
+                season['season_number'],
+                value['episode_name'],
+                value['ep_num'],
+                value['ep_description'],
+                url,
+                value['ep_id'], ))
+        except sqlite3.Error as error:
+            print("Failed to connect to sqlite database", error)
+            sys.exit()
 
 def arg_parser():
 
