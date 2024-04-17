@@ -245,7 +245,7 @@ def get_episodes (cur: sqlite3.Cursor, client, show, season) -> None:
     try:
         response = client.get(episode_url, timeout=30)
     except KeyboardInterrupt:
-        print ("Interrupted - No data committed")
+        print ("Interrupted")
         sys.exit(-1)
 
     myjson = response.json()
@@ -259,6 +259,8 @@ def get_episodes (cur: sqlite3.Cursor, client, show, season) -> None:
                     } """,  myjson)
     for _, value in enumerate(results):
         # TODO: Need to figure out if an episode has been deleted.
+        # This has sort of been taken care of by making an attempt to download a deleted episode
+        # a non-fatal error.
         query = "SELECT season_number, episode_number FROM episodes WHERE season_number=? and episode_number=? and id=?"
         try:
             cur.execute(query, (season['season_number'], value['ep_num'], show['id'], ))
