@@ -24,7 +24,7 @@ usage: get_my5.py [-h] (--url URL | --search SEARCH | --show SHOW)
                 [--episode EPISODE | --episode-list EPISODE_LIST]
                 [--season SEASON | --season-list SEASON_LIST] [--db DB]
                 [--download] [--subtitles] [--audio-description] [--verbose]
-                [--dry-run] [--plex]
+                [--dry-run] [--plex] [--list]
                 [--force]
 ```
 
@@ -37,10 +37,10 @@ usage: get_my5.py [-h] (--url URL | --search SEARCH | --show SHOW)
   --show SHOW           Name of show to download
   --episode EPISODE     Episode wanted
   --episode-list EPISODE_LIST
-                        list of episodes wanted
+                        list of episodes wanted (TODO)
   --season SEASON       Season wanted
   --season-list SEASON_LIST
-                        List of Seasons wanted
+                        List of Seasons wanted (TODO)
   --db DB               Path to database
   --download, -d        Flag to download the episode
   --subtitles, -s       Flag to download subtitles
@@ -50,6 +50,7 @@ usage: get_my5.py [-h] (--url URL | --search SEARCH | --show SHOW)
   --dry-run             Don't do anything, just print out proposed actions (TODO)
   --plex                Include Season in output dir
   --force               force overwrite of output file
+  --list                List the episodes available from search
 
 ```
 

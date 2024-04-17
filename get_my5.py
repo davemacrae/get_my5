@@ -368,6 +368,7 @@ def merge_streams(
         if re.match(date_regex, episode_title, re.I):
             episode_title = ""
 
+        # TODO: Should probably change this to f"{x:02d}"
         if season_number is None:
             season_number = "01"
         if len(season_number) == 1:
@@ -408,6 +409,7 @@ def merge_streams(
         if USE_BIN_DIR:
             ffmpeg = "./bin/ffmpeg.exe"
 
+        # TODO: Should really do this before downloading.
         if Path(f"{output_dir}.mp4").is_file() and not arguments.force:
             print (f"{output_dir}.mp4 already exists. Use --force to overwrite")
             return
@@ -660,7 +662,7 @@ where
 '''
     seasons_sql = '''
 select
-    count(*)
+    *
 from 
     seasons
 where 
@@ -668,7 +670,7 @@ where
 '''
     episodes_sql = '''
 select
-    count(*)
+    *
 from 
     episodes
 where 
@@ -686,13 +688,21 @@ where
         if rows:
             for r in rows: # found
                 cur.execute(seasons_sql, (r[0], ))
-                seasons = cur.fetchall()[0][0]
+                seasons = cur.fetchall()
                 cur.execute(episodes_sql, (r[0], ))
-                episodes = cur.fetchall()[0][0]
-                if seasons == 0:
+                # episodes = cur.fetchall()[0][0]
+                episodes = cur.fetchall()
+                if len(seasons) == 0:
                     print (f"Found {r[1]} (One Off)")
                 else:
-                    print (f"Found {r[1]} with {seasons} Seasons and {episodes} Episodes")
+                    print (f"Found {r[1]} with {len(seasons)} Seasons and {len(episodes)} Episodes")
+                    if arguments.list:
+                        for s in seasons:
+                            print (f"Season {s[2]:02d} ({s[3]}):")
+                            for e in episodes:
+                                if e[3] == s[2]:
+                                    print (f"\tS{s[2]:02d}E{e[5]:02d} - {e[2]}")
+
         else:
             print (f"Can't find a match for {show}")
         cur.close()
@@ -771,12 +781,17 @@ def create_argument_parser():
     parser.add_argument("--subtitles", "-s", help="Flag to download subtitles", action="store_true")
     parser.add_argument("--audio-description", "-ad", help="Download Audio Description audio track", action="store_true")
 
-    parser.add_argument("--verbose", "-v", help="Verbose output (TODO)", action="store_true")
+    parser.add_argument("--verbose", "-v", help="Verbose output", action="store_true")
     parser.add_argument("--dry-run", action="store_true", help="Don't do anything, just print out proposed actions (TODO)")
     parser.add_argument("--plex", help="Include Season in output dir", action="store_true")
-    parser.add_argument("--force", help="force overwrite of output file", action="store_true")
+    parser.add_argument("--force", help="Force overwrite of output file", action="store_true")
+    parser.add_argument("--list", help="List the episodes available from search", action="store_true")
 
     args = parser.parse_args()
+
+    if args.list and not args.search:
+        print ("--list only available with --search")
+        sys.exit(-1)
 
     if args.episode and not args.season:
         print ("A season must be specified if the --episode or --episode-list is given")
