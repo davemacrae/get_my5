@@ -348,6 +348,51 @@ def decrypt_streams(decryption_key: str, output_title: str) -> list:
         raise
 
 
+def get_output_file_name (show_title, season_number, episode_number, episode_title) -> str:
+    ''' Return the base output file name '''
+    date_regex = r"(monday|tuesday|wednesday|thursday|friday) \d{0,2} (january|february|march|april|may|june|july|august|september|october|november|december)"
+    if re.match(date_regex, episode_title, re.I):
+        episode_title = ""
+
+    # TODO: Should probably change this to f"{x:02d}"
+    if season_number is None:
+        season_number = "01"
+    if len(season_number) == 1:
+        season_number = f"0{season_number}"
+    if len(episode_number) == 1:
+        episode_number = f"0{episode_number}"
+
+    if "Episode " in episode_title:
+        if len(show_title.split(":")) == 2:
+            episode_title = show_title.split(":")[1]
+        else:
+            episode_title = ""
+
+    if len(episode_title.split(":")) == 2:
+        episode_title = episode_title.split(":")[1]
+
+    if show_title == episode_title or (
+        len(show_title.split(":")) == 2
+        and show_title.split(":")[1] in episode_title
+    ):
+        episode_title = ""
+
+    # added line to specify creating the output dir with a Season XX bit
+    if arguments.plex:
+        output_dir = f"{DOWNLOAD_DIR}/{safe_name(show_title)}/Season {season_number}"
+    else:
+        output_dir = f"{DOWNLOAD_DIR}/{safe_name(show_title)}"
+
+    season_number = f"S{season_number}"
+    episode_number = f"E{episode_number}"
+
+    output_file = output_dir + " ".join(
+        f"/{safe_name(show_title)} {season_number}{episode_number} {episode_title}".split()
+    ).replace(" ", ".")
+
+    return output_dir, output_file
+
+
 def merge_streams(
     files: list,
     show_title: str,
@@ -364,55 +409,13 @@ def merge_streams(
 
         # DONE: This section needs to be updated to allow for change to output dir and naming convention
 
-        date_regex = r"(monday|tuesday|wednesday|thursday|friday) \d{0,2} (january|february|march|april|may|june|july|august|september|october|november|december)"
-        if re.match(date_regex, episode_title, re.I):
-            episode_title = ""
-
-        # TODO: Should probably change this to f"{x:02d}"
-        if season_number is None:
-            season_number = "01"
-        if len(season_number) == 1:
-            season_number = f"0{season_number}"
-        if len(episode_number) == 1:
-            episode_number = f"0{episode_number}"
-
-        if "Episode " in episode_title:
-            if len(show_title.split(":")) == 2:
-                episode_title = show_title.split(":")[1]
-            else:
-                episode_title = ""
-
-        if len(episode_title.split(":")) == 2:
-            episode_title = episode_title.split(":")[1]
-
-        if show_title == episode_title or (
-            len(show_title.split(":")) == 2
-            and show_title.split(":")[1] in episode_title
-        ):
-            episode_title = ""
-
-        # added line to specify creating the output dir with a Season XX bit
-        if arguments.plex:
-            output_dir = f"{DOWNLOAD_DIR}/{safe_name(show_title)}/Season {season_number}"
-        else:
-            output_dir = f"{DOWNLOAD_DIR}/{safe_name(show_title)}"
-        os.makedirs(output_dir, exist_ok=True)
-
-        season_number = f"S{season_number}"
-        episode_number = f"E{episode_number}"
-
-        output_dir += " ".join(
-            f"/{safe_name(show_title)} {season_number}{episode_number} {episode_title}".split()
-        ).replace(" ", ".")
+        (output_dir, output_file) = get_output_file_name (show_title, season_number, episode_number, episode_title)
 
         ffmpeg = "ffmpeg"
         if USE_BIN_DIR:
             ffmpeg = "./bin/ffmpeg.exe"
 
-        # TODO: Should really do this before downloading.
-        if Path(f"{output_dir}.mp4").is_file() and not arguments.force:
-            print (f"{output_dir}.mp4 already exists. Use --force to overwrite")
-            return
+        os.makedirs(output_dir, exist_ok=True)
 
         args = [
             ffmpeg,
@@ -425,7 +428,7 @@ def merge_streams(
             files[1],
             "-c",
             "copy",
-            f"{output_dir}.mp4",
+            f"{output_file}.mp4",
         ]
         if arguments.force:
             args.insert(1, '-y')
@@ -442,7 +445,7 @@ def merge_streams(
                         print("[*] Subtitles are not available")
                     return
 
-                with open(f"{output_dir}.vtt", mode="wb") as file:
+                with open(f"{output_file}.vtt", mode="wb") as file:
                     file.write(resp.content)
             except Exception as ex:
                 print(
@@ -472,6 +475,7 @@ def check_required_config_values() -> None:
     if not lets_go:
         sys.exit(1)
 
+
 def get_episode (url: str) -> None:
     ''' Get a particular episode'''
 
@@ -493,6 +497,8 @@ def get_episode (url: str) -> None:
         print(f"[!] Episode is not available ({url})")
         return
 
+    # We now have the show info, does the ultimate output file exist?
+
     # Generate the content URL from the C5 content ID
     content_url = generate_content_url(content_id)
 
@@ -510,6 +516,12 @@ def get_episode (url: str) -> None:
 
     if arguments.download:
         delete_temp_files()
+        (_, output_file) = get_output_file_name (show_title, season_number, episode_number, episode_title)
+
+        if Path(f"{output_file}.mp4").is_file() and not arguments.force:
+            print (f"{output_file}.mp4 already exists. Use --force to overwrite")
+            return
+
         output_title = download_streams(mpd_url, show_title, episode_title)
         decrypted_file_names = decrypt_streams(decryption_key, output_title)
         merge_streams(
@@ -567,6 +579,7 @@ def create_connection() -> sqlite3.Connection:
     except Error as e:
         print(f"{e} - DB File is {cache_db}")
         sys.exit(-1)
+
 
 def get_episode_url (show: str, season: str, episode: str) -> list:
 
@@ -646,6 +659,7 @@ where
         if con:
             con.close()
     return url
+
 
 def search_show (show: str) -> list:
 
@@ -798,6 +812,7 @@ def create_argument_parser():
         sys.exit(-1)
 
     return args
+
 
 def main() -> None:
     '''
