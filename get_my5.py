@@ -8,7 +8,7 @@
 
 '''
     DONE: Allow user to specify Audio type
-    TODO: Allow user to specify verbose output, default to quiet
+    DONE: Allow user to specify verbose output, default to quiet
     DONE: Allow user to specify output directory
     DONE: Allow user to specify naming convention to cope with Plex
 '''
@@ -280,11 +280,12 @@ def download_streams(mpd: str, show_title: str, episode_title: str) -> str:
         # include the audio description
         # DONE: Allow user to select audio quality
 
-        video_audio = "bv,wa"
-
         if arguments.audio_description:
             video_audio = "bv,ba"
+        else:
+            video_audio = "bv,wa"
 
+        # TODO: Disable progress bar
         args = [
             yt_dlp,
             "--allow-unplayable-formats",
@@ -581,9 +582,11 @@ def create_connection() -> sqlite3.Connection:
         sys.exit(-1)
 
 
-def get_episode_url (show: str, season: str, episode: str) -> list:
+def get_episode_url (show: str, season: str, episode: list) -> list:
 
     ''' Find the episode in the cache '''
+
+    # x = f"SELECT * FROM distro WHERE id IN (%s)" % ("?," * len(a))[:-1]
     url = []
 
     sql = '''
@@ -595,29 +598,39 @@ where
     shows.id = episodes.id and 
     shows.title = ? and 
     episodes.season_number = ? and 
-    episode_number=?
-'''
+    episode_number in (%s)
+''' % ("?," * len(episode))[:-1]
     con = None
     try:
         con = create_connection()
         if not con:
             sys.exit(-1)
         cur = con.cursor()
-        cur.execute(sql, (show, season, episode))
+        cur.execute(sql, (show, season, *episode))
         rows = cur.fetchall()
         con.close()
+        found = []
         if rows: # found
-            if arguments.verbose:
-                print (f"Found {rows[0][3]}")
-            url.append(rows[0][3])
+            for r in rows: # found
+                found.append(r[2])
+                if arguments.verbose:
+                    print (f"Found {r[3]}")
+                url.append(r[3])
         else:
-            print (f"Can't find Episode {episode} of {show}, Season {season}")
+            for i in episode:
+                print (f"Can't find Episode {i} of {show}, Season {season}")
             sys.exit(-1)
     except sqlite3.Error as error:
         print("Failed to read data from sqlite table", error)
     finally:
         if con:
             con.close()
+
+    s = set(found)
+    not_found = [x for x in episode if x not in s]
+    for i in not_found:
+        print (f"Can't find Episodes {i} of {show}, Season {season}")
+
     return url
 
 
@@ -778,12 +791,11 @@ def create_argument_parser():
     group = parser.add_mutually_exclusive_group(required=True)
 
     group.add_argument("--url",     help="The URL of the episode to download")
-    group.add_argument("--search",  help="Name of show to search for (TODO)")
+    group.add_argument("--search",  help="Name of show to search for")
     group.add_argument("--show",    help="Name of show to download")
 
     group_episode = parser.add_mutually_exclusive_group()
-    group_episode.add_argument("--episode", help="Episode wanted")
-    group_episode.add_argument('--episode-list', type=list_of_ints, help="list of episodes wanted (TODO)")
+    group_episode.add_argument("--episode", type=list_of_ints, help="Episode(s) wanted")
 
     group_season = parser.add_mutually_exclusive_group()
     group_season.add_argument("--season",  help="Season wanted")

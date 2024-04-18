@@ -35,9 +35,7 @@ usage: get_my5.py [-h] (--url URL | --search SEARCH | --show SHOW)
   --url URL             The URL of the episode to download
   --search SEARCH       Name of show to search for
   --show SHOW           Name of show to download
-  --episode EPISODE     Episode wanted
-  --episode-list EPISODE_LIST
-                        list of episodes wanted (TODO)
+  --episode EPISODE     Episode(s) wanted
   --season SEASON       Season wanted
   --season-list SEASON_LIST
                         List of Seasons wanted (TODO)
@@ -52,6 +50,14 @@ usage: get_my5.py [-h] (--url URL | --search SEARCH | --show SHOW)
   --force               force overwrite of output file
   --list                List the episodes available from search
 
+```
+
+### Example usage
+
+```bash
+./get_my5.py --show "My Show" --season 1 --episode 1,2,3 --plex --download
+./get_my5.py --search "Show" --list
+./get_my5.py --url https://www.channel5.com/show/wanted-show --plex --download
 ```
 
 ## Config
