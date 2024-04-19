@@ -1,0 +1,5 @@
+[user]
+  email = dave@macrae.org.uk
+    
+[url "git@github.com-dmacrae"]
+  insteadOf = git@github.com
