@@ -4,6 +4,7 @@
 # pylint: disable=raise-missing-from
 # pylint: disable=line-too-long
 # pylint: disable=used-before-assignment
+# pylint: disable=possibly-used-before-assignment
 # pylint: disable=invalid-name
 
 '''
@@ -11,7 +12,7 @@
     DONE: Allow user to specify verbose output, default to quiet
     DONE: Allow user to specify output directory
     DONE: Allow user to specify naming convention to cope with Plex
-    TODO: Log downloads to DB to avoid duplicates (even after rename)
+    DONE: Log downloads to DB to avoid duplicates (even after rename)
 '''
 
 import argparse
@@ -286,7 +287,7 @@ def download_streams(mpd: str, show_title: str, episode_title: str) -> str:
         else:
             video_audio = "bv,wa"
 
-        # TODO: Disable progress bar
+        # DONE: Disable progress bar
         args = [
             yt_dlp,
             "--allow-unplayable-formats",
@@ -523,8 +524,7 @@ def get_episode (url: str) -> None:
         delete_temp_files()
         (_, output_file) = get_output_file_name (show_title, season_number, episode_number, episode_title)
 
-        # TODO: Check if file is already in Download DB to cope with deleted files.
-        if Path(f"{output_file}.mp4").is_file()) and not arguments.force:
+        if Path(f"{output_file}.mp4").is_file() and not arguments.force:
             print (f"{output_file}.mp4 already exists. Use --force to overwrite")
             return
 
@@ -540,12 +540,39 @@ def get_episode (url: str) -> None:
             arguments.subtitles,
         )
         print (f"{output_file}.mp4 downloaded")
-        # TODO: Log download to DB
+        # DONE: Log download to DB
+        update_episode(url)
 
         delete_temp_files()
 
     if arguments.verbose:
         print("[*] Done")
+
+def update_episode(url: str) -> None:
+    ''' Mark Episode downloaded '''
+
+    sql = '''
+update
+    episodes
+set
+    downloaded = 1
+where episode_url = ?
+'''
+    con = None
+    try:
+        con = create_connection()
+        if not con:
+            sys.exit(-1)
+        cur = con.cursor()
+        cur.execute(sql, (url,))
+        # save the changes
+        con.commit()
+        con.close()
+    except sqlite3.Error as error:
+        print("Failed to update sqlite table", error)
+    finally:
+        if con:
+            con.close()
 
 
 def create_connection() -> sqlite3.Connection:
@@ -594,12 +621,11 @@ def get_episode_url (show: str, season: str, episode: list) -> list:
 
     ''' Find the episode in the cache '''
 
-    # x = f"SELECT * FROM distro WHERE id IN (%s)" % ("?," * len(a))[:-1]
     url = []
 
     sql = '''
 select
-    episodes.season_number, episode_name, episode_number, episode_url
+    episodes.season_number, episode_name, episode_number, episode_url, downloaded
 from episodes
 inner join shows on shows.id = episodes.id
 where 
@@ -621,9 +647,12 @@ where
         if rows: # found
             for r in rows: # found
                 found.append(r[2])
-                if arguments.verbose:
-                    print (f"Found {r[3]}")
-                url.append(r[3])
+                if not r[4]: # Episode has been downloaded
+                    if arguments.verbose:
+                        print (f"Found {r[3]}")
+                    url.append(r[3])
+                else:
+                    print (f"Season {r[0]} Episode {r[2]} of {show} has already been downoaded")
         else:
             for i in episode:
                 print (f"Can't find Episode {i} of {show}, Season {season}")
@@ -649,7 +678,7 @@ def get_season_url (show: str, season: str) -> list:
 
     sql = '''
 select
-    episodes.season_number, episode_name, episode_number, episode_url
+    episodes.season_number, episode_name, episode_number, episode_url, downloaded
 from episodes
 inner join shows on shows.id = episodes.id
 where 
@@ -668,9 +697,12 @@ where
         cur.close()
         if rows:
             for r in rows: # found
-                if arguments.verbose:
-                    print (f"Found {r[3]}")
-                url.append(r[3])
+                if not r[4]: # Episode has been downloaded
+                    if arguments.verbose:
+                        print (f"Found {r[3]}")
+                    url.append(r[3])
+                else:
+                    print (f"Season {r[0]} Episode {r[2]} of {show} has already been downoaded")
         else:
             print (f"Can't find Season {season} of {show}")
             sys.exit(-1)
@@ -756,7 +788,7 @@ def get_show_url (show: str) -> list:
 
     sql = '''
 select
-    episodes.season_number, episode_name, episode_number, episode_url
+    episodes.season_number, episode_name, episode_number, episode_url, downloaded
 from episodes
 inner join shows on shows.id = episodes.id
 where 
@@ -774,9 +806,12 @@ where
         cur.close()
         if rows:
             for r in rows: # found
-                if arguments.verbose:
-                    print (f"Found {r[3]}")
-                url.append(r[3])
+                if not r[4]: # Episode has been downloaded
+                    if arguments.verbose:
+                        print (f"Found {r[3]}")
+                    url.append(r[3])
+                else:
+                    print (f"Season {r[0]} Episode {r[2]} of {show} has already been downoaded")
         else:
             print (f"Can't find ay episodes for {show}")
             sys.exit(-1)
