@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 '''
     # Based on the original script by A_n_g_e_l_a
     # this script runs a headless version of firefox to run Diazole's retrieve-keys.html,
