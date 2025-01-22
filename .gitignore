@@ -172,3 +172,5 @@ fred.db
 test.sql
 split_list.py
 .gitconfig
+2*.txt
+nohup.out
