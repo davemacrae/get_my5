@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-#pylint: disable=missing-function-docstring, missing-module-docstring, line-too-long, missing-class-docstring, used-before-assignment
+# pylint: disable=missing-function-docstring, missing-module-docstring, line-too-long, missing-class-docstring, used-before-assignment
+# pylint: disable=possibly-used-before-assignment
 
 import sys
 import sqlite3
@@ -99,6 +100,7 @@ def create_database(con: sqlite3.Connection) -> sqlite3.Cursor:
         episode_description VARCHAR,
         episode_url VARCHAR,
         episode_id VARCHAR,
+        downloaded INT,
         UNIQUE(episode_number, episode_url)
     );
     '''
