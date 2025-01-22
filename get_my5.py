@@ -11,6 +11,7 @@
     DONE: Allow user to specify verbose output, default to quiet
     DONE: Allow user to specify output directory
     DONE: Allow user to specify naming convention to cope with Plex
+    TODO: Log downloads to DB to avoid duplicates (even after rename)
 '''
 
 import argparse
@@ -291,13 +292,16 @@ def download_streams(mpd: str, show_title: str, episode_title: str) -> str:
             "--allow-unplayable-formats",
             "-q",
             "--no-warnings",
-            "--progress",
             "-f",
             video_audio,
             mpd,
             "-o",
             f"{TMP_DIR}/encrypted_{output_title}.%(ext)s",
         ]
+
+        if arguments.verbose:
+            args.insert(3, '--progress')
+
         subprocess.run(args, check=True)
         return output_title
     except KeyboardInterrupt:
@@ -476,7 +480,6 @@ def check_required_config_values() -> None:
     if not lets_go:
         sys.exit(1)
 
-
 def get_episode (url: str) -> None:
     ''' Get a particular episode'''
 
@@ -495,6 +498,7 @@ def get_episode (url: str) -> None:
         episode_title,
     ) = get_content_info(episode_url)
     if content_id is None:
+        # TODO: Remove episode from database
         print(f"[!] Episode is not available ({url})")
         return
 
@@ -519,7 +523,8 @@ def get_episode (url: str) -> None:
         delete_temp_files()
         (_, output_file) = get_output_file_name (show_title, season_number, episode_number, episode_title)
 
-        if Path(f"{output_file}.mp4").is_file() and not arguments.force:
+        # TODO: Check if file is already in Download DB to cope with deleted files.
+        if Path(f"{output_file}.mp4").is_file()) and not arguments.force:
             print (f"{output_file}.mp4 already exists. Use --force to overwrite")
             return
 
@@ -534,6 +539,9 @@ def get_episode (url: str) -> None:
             subtitles_url,
             arguments.subtitles,
         )
+        print (f"{output_file}.mp4 downloaded")
+        # TODO: Log download to DB
+
         delete_temp_files()
 
     if arguments.verbose:
