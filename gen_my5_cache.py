@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 #pylint: disable=missing-function-docstring, missing-module-docstring, line-too-long, missing-class-docstring, used-before-assignment
 
