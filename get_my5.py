@@ -647,7 +647,7 @@ where
         if rows: # found
             for r in rows: # found
                 found.append(r[2])
-                if not r[4]: # Episode has been downloaded
+                if not r[4] or arguments.force: # Episode has been downloaded (force overides)
                     if arguments.verbose:
                         print (f"Found {r[3]}")
                     url.append(r[3])
@@ -697,7 +697,7 @@ where
         cur.close()
         if rows:
             for r in rows: # found
-                if not r[4]: # Episode has been downloaded
+                if not r[4] or arguments.force: # Episode has been downloaded (force overides)
                     if arguments.verbose:
                         print (f"Found {r[3]}")
                     url.append(r[3])
@@ -806,7 +806,7 @@ where
         cur.close()
         if rows:
             for r in rows: # found
-                if not r[4]: # Episode has been downloaded
+                if not r[4] or arguments.force: # Episode has been downloaded (force overides)
                     if arguments.verbose:
                         print (f"Found {r[3]}")
                     url.append(r[3])
