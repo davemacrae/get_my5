@@ -50,7 +50,7 @@ def create_connection() -> sqlite3.Connection:
 
     try:
         cache_db.parent.mkdir(parents=True, exist_ok=True)
-        if args.create:
+        if args.create and cache_db.is_file():
             cache_db.unlink()
 
         return sqlite3.connect(cache_db)
@@ -151,7 +151,7 @@ def get_all_shows(con: sqlite3.Connection) -> None:
             try:
                 cur.execute(query, (show['id'], show['id'], ))
             except sqlite3.Error as error:
-                print("Failed to connect to sqlite database", error)
+                print("Failed to extract data from sqlite database", error)
                 sys.exit()
             rows = cur.fetchall()
             if not rows: # New Show
@@ -168,7 +168,7 @@ def get_all_shows(con: sqlite3.Connection) -> None:
                     show['sub_genre'],
                     show['synopsis'], ))
         except sqlite3.Error as error:
-            print("Failed to connect to sqlite database", error)
+            print("Failed to insert into to sqlite database", error)
             sys.exit()
 
         get_seasons(cur, client, show)
