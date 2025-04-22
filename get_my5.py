@@ -811,9 +811,10 @@ where
                         print (f"Found {r[3]}")
                     url.append(r[3])
                 else:
-                    print (f"Season {r[0]} Episode {r[2]} of {show} has already been downoaded")
+                    if arguments.verbose:
+                        print (f"Season {r[0]} Episode {r[2]} of {show} has already been downoaded")
         else:
-            print (f"Can't find ay episodes for {show}")
+            print (f"Can't find any episodes for {show}")
             sys.exit(-1)
     except sqlite3.Error as error:
         print("Failed to read data from sqlite table", error)
